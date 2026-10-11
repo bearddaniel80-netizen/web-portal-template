@@ -1,0 +1,11 @@
+# framework
+fastapi
+
+# prod server
+uvicorn[standard]
+
+# database
+# psycopg2-binary
+
+# config file
+pyyaml

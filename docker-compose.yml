@@ -1,0 +1,205 @@
+services:
+
+  # ==========================================================
+  # CADDY
+  #
+  # The ONLY container exposed to the Internet.
+  # ==========================================================
+
+  caddy:
+    networks:
+      - public
+
+    build: ./caddy
+
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+
+  # ─────────────────────────────────────
+  # DJANGO
+  #
+  # Not exposed to the Internet.
+  # Caddy talks to it internally.
+  # ==========================================================
+
+  frontend:
+    build:
+      context: ./frontend
+      target: ${TARGET}
+    
+    environment:
+      DJANGO_DEBUG: "false"
+      DATABASE_DB: ${POSTGRES_DB}
+      DATABASE_HOST: ${POSTGRES_HOST}
+      DATABASE_PORT: ${POSTGRES_PORT}
+      DATABASE_USER: ${POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+    
+    secrets:
+      - django_secret_key
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    networks:
+      - public
+
+  # ─────────────────────────────────────
+  # Postgres
+  #
+  # Completely private.
+  # ─────────────────────────────────────
+
+  db:
+    image: postgres:13-alpine
+    
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    
+    networks:
+      - backend
+
+  # ─────────────────────────────────────
+  # Service Manager
+  #
+  # Completely private.
+  # ─────────────────────────────────────
+
+  service-manager:
+    build: 
+      context: ./service-manager
+      target: ${TARGET}
+    
+    container_name: backend
+    
+    environment:
+      DOCKER_HOST: unix:///var/run/docker.sock
+      DATABASE_DB: ${POSTGRES_DB}
+      DATABASE_HOST: ${POSTGRES_HOST}
+      DATABASE_PORT: ${POSTGRES_PORT}
+      DATABASE_USER: ${POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+
+    secrets:
+      - service_manager_api_key
+    
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    
+    networks:
+      - backend
+
+  # ==========================================================
+  # NODE.JS BFF
+  #
+  # Browser -> Node -> Serice Manager
+  #
+  # Node is NOT publicly exposed.
+  # ==========================================================
+
+  node:
+    build:
+      context: ./node
+      target: ${TARGET}
+
+    environment:
+      NODE_ENV: ${ENVIRONMENT}
+      SERVICE_MANAGER_URL: http://backend:8000
+      
+    secrets:
+      - service_manager_api_key
+    
+    ports:
+      - "4000"
+
+    networks:
+      - public
+      - backend
+ # ==========================================================
+  # PLAYWRIGHT
+  #
+  # Run manually:
+  #
+  # docker compose up -d --build
+  # docker compose --profile test up
+  # ==========================================================
+
+  playwright:
+    profiles:
+      - test
+
+    image: mcr.microsoft.com/playwright:v1.62.0-noble
+
+    working_dir: /tests
+
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+
+    environment:
+      BASE_URL: https://${DOMAIN}
+
+    volumes:
+      - ./tests:/tests
+
+    ipc: host
+
+    networks:
+      - public
+
+    command: npm install && npx playwright test
+
+# ============================================================
+# NETWORKS
+# ============================================================
+
+networks:
+
+  # Caddy <-> Django
+  # Caddy <-> Node
+  public:
+
+  # Node <-> Service Manager
+  # Node <-> Postgres
+  # Service Manager <-> Postgres
+  backend:
+
+# ============================================================
+# VOLUMES
+# ============================================================
+
+volumes:
+  caddy_data:
+  caddy_config:
+  postgres_data:
+
+# ============================================================
+# SECRETS
+# ============================================================
+secrets:
+  django_secret_key:
+    file: ./secrets/django_secret_key.txt
+  service_manager_api_key:
+    file: ./secrets/service_manager_api_key.txt
+  database_root_user:
+    file: ./secrets/database_root_user.txt
+  database_root_password:
+    file: ./secrets/database_root_password.txt

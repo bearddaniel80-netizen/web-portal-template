@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Applications
+{% endblock %}
+
+{% block content %}
+
+<section class="applications">
+
+    <h1>
+        Applications
+    </h1>
+
+    <div class="application-grid">
+
+        {% for application in applications %}
+
+            <form
+                method="post"
+                action="{% url 'portal:launch_application' application.id %}"
+                class="application"
+            >
+                {% csrf_token %}
+
+                <button type="submit">
+
+                    {% if application.icon %}
+                        <span class="application-icon">
+                            {{ application.icon }}
+                        </span>
+                    {% endif %}
+
+                    <span class="application-name">
+                        {{ application.name }}
+                    </span>
+
+                    {% if application.description %}
+                        <span class="application-description">
+                            {{ application.description }}
+                        </span>
+                    {% endif %}
+
+                </button>
+
+            </form>
+
+        {% empty %}
+
+            <p>
+                No applications are available.
+            </p>
+
+        {% endfor %}
+
+    </div>
+
+</section>
+
+{% endblock %}

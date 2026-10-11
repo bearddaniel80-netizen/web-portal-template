@@ -1,0 +1,240 @@
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family:
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+    background: #f5f5f5;
+    color: #222;
+}
+
+
+/* Header */
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 1rem 2rem;
+
+    background: #222;
+    color: white;
+}
+
+.header-brand {
+    color: white;
+    font-size: 1.25rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.header-user {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-user form {
+    margin: 0;
+}
+
+.header-user button {
+    padding: 0.4rem 0.75rem;
+
+    border: 1px solid #666;
+    border-radius: 0.35rem;
+
+    background: transparent;
+    color: white;
+
+    cursor: pointer;
+}
+
+.header-user button:hover {
+    background: #444;
+}
+
+
+/* Main */
+
+.main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+
+/* Login */
+
+.login {
+    width: 100%;
+    max-width: 400px;
+    margin: 4rem auto;
+}
+
+.login form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.login input {
+    width: 100%;
+    padding: 0.65rem;
+
+    border: 1px solid #ccc;
+    border-radius: 0.35rem;
+}
+
+.login button {
+    padding: 0.7rem;
+
+    border: 0;
+    border-radius: 0.35rem;
+
+    background: #222;
+    color: white;
+
+    cursor: pointer;
+}
+
+.login button:hover {
+    background: #444;
+}
+
+
+/* Applications */
+
+.application-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(auto-fill, minmax(180px, 1fr));
+
+    gap: 1.5rem;
+
+    margin-top: 2rem;
+}
+
+
+/* Application */
+
+.application {
+    margin: 0;
+}
+
+.application button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    min-height: 180px;
+
+    padding: 1.5rem;
+
+    border: 1px solid #ddd;
+    border-radius: 0.75rem;
+
+    background: white;
+    color: #222;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.application button:hover {
+    transform: translateY(-3px);
+
+    border-color: #bbb;
+
+    box-shadow:
+        0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.application button:focus-visible {
+    outline: 3px solid #448aff;
+    outline-offset: 3px;
+}
+
+
+/* Application icon */
+
+.application-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 72px;
+    height: 72px;
+
+    margin-bottom: 1rem;
+
+    border-radius: 1rem;
+
+    background: #eee;
+
+    font-size: 2rem;
+}
+
+
+/* Application text */
+
+.application-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.application-description {
+    margin-top: 0.4rem;
+
+    color: #666;
+
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+
+/* Mobile */
+
+@media (max-width: 600px) {
+
+    .header {
+        padding: 1rem;
+    }
+
+    .main {
+        padding: 1rem;
+    }
+
+    .application-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+
+        gap: 1rem;
+    }
+
+    .application button {
+        min-height: 150px;
+        padding: 1rem;
+    }
+
+}

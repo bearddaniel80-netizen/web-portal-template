@@ -1,0 +1,11 @@
+# framework
+Django
+
+# api calls
+requests
+
+# prod server
+uvicorn[standard]
+
+# database
+psycopg2-binary

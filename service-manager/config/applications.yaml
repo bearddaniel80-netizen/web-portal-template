@@ -1,0 +1,8 @@
+applications:
+  app-a:
+    compose_file: /applications/app-a/docker-compose.yml
+    health_url: http://app-a/health
+
+  app-b:
+    compose_file: /applications/app-b/docker-compose.yml
+    health_url: http://app-b/health
