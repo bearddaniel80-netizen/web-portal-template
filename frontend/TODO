@@ -1,11 +1,4 @@
-
-DJANGO_SECRET_KEY=your-development-secret
-DJANGO_DEBUG=true
-DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
-DJANGO_TIME_ZONE=America/New_York
-
-SERVICE_MANAGER_URL=http://service-manager:8000
-SERVICE_MANAGER_API_KEY=your-service-manager-key
+OIDC_RP_CLIENT_ID = os.environ["OIDC_RP_CLIENT_ID"]
 
 Database Table
 ---------------

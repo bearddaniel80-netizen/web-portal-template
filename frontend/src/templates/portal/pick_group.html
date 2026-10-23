@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Choose a role | Portal</title></head>
+<body>
+  <h1>Choose a role</h1>
+  <ul>
+  {% for g in groups %}
+    <li><a href="{% url 'portal:landing' g.name %}">{{ g.name|title }}</a></li>
+  {% endfor %}
+  </ul>
+</body>
+</html>

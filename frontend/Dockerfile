@@ -20,8 +20,16 @@ WORKDIR /app
 
 COPY src .
 
-RUN python manage.py makemigrations
+# RUN python manage.py makemigrations portal
+# RUN python manage.py migrate
+# RUN python manage.py createsuperuser
+# RUN python manage.py seed_portal
+RUN django_secret_key=build-only \
+    authentik_oidc_client_secret=build-only \
+    DATABASE_DB=build DATABASE_USER=build DATABASE_PASSWORD=build \
+    OIDC_RP_CLIENT_ID=build \
+    python manage.py collectstatic --noinput
 
-RUN python manage.py migrate
+CMD ["sh", "-c", "python manage.py migrate && uvicorn config.asgi:application --host 0.0.0.0 --port 8000"]
 
-CMD ["uvicorn", "config.asgi:application",   "--host",  "0.0.0.0",  "--port",  "8000"]
+#CMD ["uvicorn", "config.asgi:application",   "--host",  "0.0.0.0",  "--port",  "8000"]

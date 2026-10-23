@@ -1,6 +1,9 @@
 # framework
 Django
 
+# middleware
+whitenoise
+
 # api calls
 requests
 
@@ -9,3 +12,6 @@ uvicorn[standard]
 
 # database
 psycopg2-binary
+
+# security
+mozilla-django-oidc

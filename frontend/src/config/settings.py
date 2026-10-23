@@ -42,9 +42,10 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
+    "mozilla_django_oidc",
+
     "portal",
 ]
-
 
 # ---------------------------------------------------------------------------
 # Middleware
@@ -54,6 +55,9 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
 
     "django.contrib.sessions.middleware.SessionMiddleware",
+    
+    # settings.py: add right after SecurityMiddleware
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 
     "django.middleware.common.CommonMiddleware",
 
@@ -122,32 +126,107 @@ DATABASES = {
 # Authentication
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Authentication
+# ---------------------------------------------------------------------------
+
+AUTHENTICATION_BACKENDS = [
+    "mozilla_django_oidc.auth.OIDCAuthenticationBackend",
+
+    # Preserve Django's normal authentication for admin accounts
+    # and other explicitly permitted local authentication.
+    "django.contrib.auth.backends.ModelBackend",
+]
+
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME":
-            "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "UserAttributeSimilarityValidator"
+        ),
     },
     {
-        "NAME":
-            "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "MinimumLengthValidator"
+        ),
     },
     {
-        "NAME":
-            "django.contrib.auth.password_validation.CommonPasswordValidator",
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "CommonPasswordValidator"
+        ),
     },
     {
-        "NAME":
-            "django.contrib.auth.password_validation.NumericPasswordValidator",
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "NumericPasswordValidator"
+        ),
     },
 ]
 
-
-LOGIN_URL = "/login/"
-
+# Redirect unauthenticated users to authentik through OIDC.
+LOGIN_URL = "oidc_authentication_init"
+LOGIN_REDIRECT_URL_FAILURE = "/admin/login/"
 LOGIN_REDIRECT_URL = "/"
 
-LOGOUT_REDIRECT_URL = "/login/"
+LOGOUT_REDIRECT_URL = "/"
 
+# ---------------------------------------------------------------------------
+# authentik / OpenID Connect
+# ---------------------------------------------------------------------------
+
+AUTHENTIK_BASE_URL = os.environ.get(
+    "AUTHENTIK_BASE_URL",
+    "https://auth.example.com",
+).rstrip("/")
+
+AUTHENTIK_APPLICATION_SLUG = os.environ.get(
+    "AUTHENTIK_APPLICATION_SLUG",
+    "django-portal",
+)
+AUTHENTIK_INTERNAL_URL = "http://authentik-server:9000"
+OIDC_OP_TOKEN_ENDPOINT = f"{AUTHENTIK_INTERNAL_URL}/application/o/token/"
+OIDC_OP_USER_ENDPOINT  = f"{AUTHENTIK_INTERNAL_URL}/application/o/userinfo/"
+OIDC_OP_JWKS_ENDPOINT  = f"{AUTHENTIK_INTERNAL_URL}/application/o/{AUTHENTIK_APPLICATION_SLUG}/jwks/"
+
+OIDC_RP_SIGN_ALGO = "RS256"
+
+OIDC_RP_CLIENT_ID = os.environ["OIDC_RP_CLIENT_ID"]
+
+OIDC_RP_CLIENT_SECRET = read_secret(
+    "authentik_oidc_client_secret"
+)
+
+OIDC_OP_AUTHORIZATION_ENDPOINT = (
+    f"{AUTHENTIK_BASE_URL}/application/o/authorize/"
+)
+
+OIDC_OP_TOKEN_ENDPOINT = (
+    f"{AUTHENTIK_BASE_URL}/application/o/token/"
+)
+
+OIDC_OP_USER_ENDPOINT = (
+    f"{AUTHENTIK_BASE_URL}/application/o/userinfo/"
+)
+
+OIDC_OP_JWKS_ENDPOINT = (
+    f"{AUTHENTIK_BASE_URL}/application/o/"
+    f"{AUTHENTIK_APPLICATION_SLUG}/jwks/"
+)
+
+OIDC_RP_SCOPES = "openid email profile"
+
+# Do not automatically create portal accounts for every identity
+# that can authenticate with authentik.
+OIDC_CREATE_USER = False
+
+# Verify token signatures and TLS certificates.
+OIDC_VERIFY_JWT = True
+OIDC_VERIFY_SSL = True
+
+# Require HTTPS for the OIDC callback in production.
+# Your existing SECURE_PROXY_SSL_HEADER supports this behind Caddy.
 
 # ---------------------------------------------------------------------------
 # Internationalization
@@ -248,3 +327,13 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = (
 SECURE_HSTS_PRELOAD = (
     SECURE_HSTS_SECONDS > 0
 )
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {
+        "django.request": {"handlers": ["console"], "level": "ERROR"},
+        "mozilla_django_oidc": {"handlers": ["console"], "level": "DEBUG"},
+    },
+}

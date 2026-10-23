@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ info.title }} | Portal</title>
+</head>
+<body>
+  <h1>{{ info.title }}</h1>
+  <p>{{ info.blurb }}</p>
+
+  {% if applications %}
+    <ul>
+    {% for app in applications %}
+      <li>
+        <strong>{{ app.name }}</strong> {{ app.description }}
+        <form method="post" action="{% url 'portal:launch_application' app.id %}" style="display:inline">
+          {% csrf_token %}
+          <button type="submit">Launch</button>
+        </form>
+      </li>
+    {% endfor %}
+    </ul>
+  {% else %}
+    <p>No applications are assigned to this group yet.</p>
+  {% endif %}
+</body>
+</html>

@@ -85,6 +85,7 @@ localhost {
         reverse_proxy node:4000
     }
 
+
     # ========================================================
     # FRONTEND
     # ========================================================
@@ -93,4 +94,8 @@ localhost {
 
         reverse_proxy frontend:8000
     }
+}
+auth.localhost {
+    encode gzip zstd
+    reverse_proxy authentik-server:9000
 }

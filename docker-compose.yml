@@ -21,6 +21,118 @@ services:
       - caddy_data:/data
       - caddy_config:/config
 
+  # ==========================================================
+  # AUTHENTIK SERVER
+  #
+  # Caddy proxies auth traffic to this service.
+  # ==========================================================
+
+  authentik-server:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG}
+    command: server
+
+    environment:
+      AUTHENTIK_SECRET_KEY: file:///run/secrets/authentik_secret_key
+      AUTHENTIK_POSTGRESQL__HOST: authentik-db
+      AUTHENTIK_POSTGRESQL__PORT: "5432"
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: file:///run/secrets/authentik_postgres_password
+      DOMAIN: ${DOMAIN}
+      OIDC_RP_CLIENT_ID: ${OIDC_RP_CLIENT_ID}
+      OIDC_RP_CLIENT_SECRET: ${OIDC_RP_CLIENT_SECRET}
+      USER1_PASSWORD: ${USER1_PASSWORD}
+      USER2_PASSWORD: ${USER2_PASSWORD}
+
+    secrets:
+      - authentik_secret_key
+      - authentik_postgres_password
+
+    volumes:
+      - ./authentik/blueprints:/blueprints/custom:ro
+
+    depends_on:
+      authentik-db:
+        condition: service_healthy
+
+    networks:
+      - public
+      - authentik_backend
+
+    restart: unless-stopped
+
+
+  # ==========================================================
+  # AUTHENTIK WORKER
+  #
+  # Applies YAML Blueprints and runs background tasks.
+  # ==========================================================
+
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG}
+    command: worker
+
+    environment:
+      AUTHENTIK_SECRET_KEY: file:///run/secrets/authentik_secret_key
+      AUTHENTIK_POSTGRESQL__HOST: authentik-db
+      AUTHENTIK_POSTGRESQL__PORT: "5432"
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: file:///run/secrets/authentik_postgres_password
+      DOMAIN: ${DOMAIN}
+      OIDC_RP_CLIENT_ID: ${OIDC_RP_CLIENT_ID}
+      OIDC_RP_CLIENT_SECRET: ${OIDC_RP_CLIENT_SECRET}
+      USER1_PASSWORD: ${USER1_PASSWORD}
+      USER2_PASSWORD: ${USER2_PASSWORD}
+
+    secrets:
+      - authentik_secret_key
+      - authentik_postgres_password
+
+    volumes:
+      - ./authentik/blueprints:/blueprints/custom:ro
+
+    depends_on:
+      authentik-db:
+        condition: service_healthy
+
+    networks:
+      - authentik_backend
+
+    restart: unless-stopped
+
+
+  # ==========================================================
+  # AUTHENTIK DATABASE
+  #
+  # Separate from the Django application's database.
+  # ==========================================================
+
+  authentik-db:
+    image: postgres:16-alpine
+
+    environment:
+      POSTGRES_DB: authentik
+      POSTGRES_USER: authentik
+      POSTGRES_PASSWORD_FILE: /run/secrets/authentik_postgres_password
+
+    secrets:
+      - authentik_postgres_password
+
+    volumes:
+      - authentik_postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authentik -d authentik"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+    networks:
+      - authentik_backend
+
+    restart: unless-stopped
+
   # ─────────────────────────────────────
   # DJANGO
   #
@@ -34,6 +146,8 @@ services:
       target: ${TARGET}
     
     environment:
+      AUTHENTIK_BASE_URL: ${AUTHENTIK_BASE_URL}
+      OIDC_RP_CLIENT_ID: ${OIDC_RP_CLIENT_ID}
       DJANGO_DEBUG: "false"
       DATABASE_DB: ${POSTGRES_DB}
       DATABASE_HOST: ${POSTGRES_HOST}
@@ -43,6 +157,7 @@ services:
     
     secrets:
       - django_secret_key
+      - authentik_oidc_client_secret
 
     depends_on:
       db:
@@ -50,6 +165,7 @@ services:
 
     networks:
       - public
+      - backend
 
   # ─────────────────────────────────────
   # Postgres
@@ -58,7 +174,7 @@ services:
   # ─────────────────────────────────────
 
   db:
-    image: postgres:13-alpine
+    image: postgres:15-alpine
     
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -182,6 +298,8 @@ networks:
   # Service Manager <-> Postgres
   backend:
 
+  authentik_backend:
+
 # ============================================================
 # VOLUMES
 # ============================================================
@@ -190,6 +308,7 @@ volumes:
   caddy_data:
   caddy_config:
   postgres_data:
+  authentik_postgres_data:
 
 # ============================================================
 # SECRETS
@@ -199,7 +318,9 @@ secrets:
     file: ./secrets/django_secret_key.txt
   service_manager_api_key:
     file: ./secrets/service_manager_api_key.txt
-  database_root_user:
-    file: ./secrets/database_root_user.txt
-  database_root_password:
-    file: ./secrets/database_root_password.txt
+  authentik_oidc_client_secret:
+    file: ./secrets/authentik_oidc_client_secret.txt
+  authentik_secret_key:
+    file: ./secrets/authentik_secret_key.txt
+  authentik_postgres_password:
+    file: ./secrets/authentik_postgres_password.txt
